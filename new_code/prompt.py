@@ -178,12 +178,14 @@ def merge_prompt(src_dict, datasets, instruction_dict, prompt_id=1, cut=False):
             content = 'The prior and context are the same. Predict entity is {}.'.format(src_dict['candidates'][0]['name'])
         return None, content
     
+    # Instruction
     system_content = "You're an entity disambiguator. I'll give you the description of entity disambiguation and some tips on entity disambiguation, you should pay attention to these textual features:\n\n"
     system_content += instruction_dict[prompt_id]['prompt']
 
     content = "Now, I'll give you a mention, a context, and a list of candidates entities, the mention will be highlighted with '###' in context.\n\n"
     content += 'Mention:{}\n'.format(src_dict['mention'])
 
+    # ctx mention构造
     if ('cut_left_context' in src_dict.keys()) and cut:
         context = src_dict['cut_left_context'] + ' ###' + src_dict['mention'] + '### ' + src_dict['cut_right_context']
     else:
@@ -192,6 +194,7 @@ def merge_prompt(src_dict, datasets, instruction_dict, prompt_id=1, cut=False):
     context = ' '.join(context.split())
     content += 'Context:{}\n'.format(context)
 
+    # 候选实体集合随机采样
     candidates = random.sample(src_dict['candidates'], len(src_dict['candidates']))
     i = 1
     for cand in candidates:
@@ -259,6 +262,7 @@ if __name__ == '__main__':
                 elif func_name == 'prior':
                     system_prompt, prompt = prior_prompt(line, dataset_name)
                 elif func_name == 'merge':
+                    # merge_prompt：包含mention，context，candidates
                     system_prompt, prompt = merge_prompt(line, dataset_name, instruction_dict=instruction_dict)
                     if system_prompt == None:
                         response = prompt

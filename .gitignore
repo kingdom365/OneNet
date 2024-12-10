@@ -1,0 +1,6 @@
+Qwen/
+datasets/
+meta-llama/
+result/
+.DS_Store
+new_code/__pycache__
