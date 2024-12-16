@@ -82,15 +82,16 @@ def llm_call(messages, model_name, model=None, tokenizer=None, pipeline=None, do
         response = tokenizer.decode(output_ids[0][input_ids.shape[1]:], skip_special_tokens=True)
         return response
     elif model_name == 'Qwen':
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         if tokenizer is None:
             text = pipeline[1].apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-            model_inputs = pipeline[1]([text], return_tensors="pt").to('cuda')
+            model_inputs = pipeline[1]([text], return_tensors="pt").to(device)
             generated_ids = pipeline[0].generate(model_inputs.input_ids, max_new_tokens=max_new_tokens)
             generated_ids = [output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)]
             response = pipeline[1].batch_decode(generated_ids, skip_special_tokens=True)[0]
         else:
             text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-            model_inputs = tokenizer([text], return_tensors="pt").to('cuda')
+            model_inputs = tokenizer([text], return_tensors="pt").to(device)
             generated_ids = model.generate(model_inputs.input_ids, max_new_tokens=max_new_tokens)
             generated_ids = [output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)]
             response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]

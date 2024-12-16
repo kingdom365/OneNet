@@ -72,6 +72,7 @@ def category_prompt(src_dict):
     return content
 
 def point_wise_el_prompt(src_dict, instruction_dict, dataset, cut=False):
+    # CEF
     if dataset == 'zeshel':
         content = "You're an entity disambiguator. I'll give you the description of entity disambiguation and some tips on entity disambiguation, and you need to pay attention to these textual features:\n\n"
         content += instruction_dict[0]['prompt']
@@ -103,6 +104,7 @@ def point_wise_el_prompt(src_dict, instruction_dict, dataset, cut=False):
         context = ' '.join(context.split())
         content += 'context:{}\n'.format(context)
 
+        # 只有一个entity, point-wise
         cand_entity = '{}.{}'.format(src_dict['cand_name'], src_dict['cand_text'])
         content += 'candidate entity:{}\n\n'.format(cand_entity)
 
@@ -185,7 +187,7 @@ def merge_prompt(src_dict, datasets, instruction_dict, prompt_id=1, cut=False):
     content = "Now, I'll give you a mention, a context, and a list of candidates entities, the mention will be highlighted with '###' in context.\n\n"
     content += 'Mention:{}\n'.format(src_dict['mention'])
 
-    # ctx mention构造
+    # 基于context的linker
     if ('cut_left_context' in src_dict.keys()) and cut:
         context = src_dict['cut_left_context'] + ' ###' + src_dict['mention'] + '### ' + src_dict['cut_right_context']
     else:
@@ -194,7 +196,7 @@ def merge_prompt(src_dict, datasets, instruction_dict, prompt_id=1, cut=False):
     context = ' '.join(context.split())
     content += 'Context:{}\n'.format(context)
 
-    # 候选实体集合随机采样
+    # 基于prior的linker，它需要ERP先把summary总结出来
     candidates = random.sample(src_dict['candidates'], len(src_dict['candidates']))
     i = 1
     for cand in candidates:
