@@ -18,11 +18,14 @@ class Retriever:
         rs = self.client.get_or_create_collection(
             collection
         )
+        print('result set size : ', rs.count())
         docs = rs.query(
             query_embeddings=[mention_emb],
             n_results=k
         )
-        print(docs)
+        print('candidates get num : ', len(docs['ids'][0]))
+        # {ids, embeddings, documents, distances}
+        # print(docs)
         # 3. return entities
-        return docs["documents"]
+        return docs["documents"][0]
     

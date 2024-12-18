@@ -23,21 +23,22 @@ pipeline = load_llm('Qwen', '../Qwen/Qwen2.5-1.5B-Instruct')
 
 def init_db():
     # 将summary pr得到的entity summary注入vdb
-    indexer = Indexer({"client": chromadb_client})
+    indexer = Indexer(client=chromadb_client)
     summary = []
     with open(summary_path, 'r') as f:
         for line in f:
             summary.append(json.loads(line.strip()))
-    collection = indexer.refresh_and_get_db()
+    sz, collection = indexer.refresh_and_get_db()
     error_items = []
-    for _, ent in enumerate(summary):
-        doc_id = ent['document_id'] 
-        desc = ent['summary']
-        name = ent['title']
-        ret = indexer.insert_entity(doc_id, name, desc)
-        if not ret:
-            error_items.append({"doc_id": doc_id, "desc": desc, "name": name})
-    return collection
+    if sz <= 0:
+        for _, ent in enumerate(summary):
+            doc_id = ent['document_id'] 
+            desc = ent['summary']
+            name = ent['title']
+            ret = indexer.insert_entity(doc_id, name, desc)
+            if not ret:
+                error_items.append({"doc_id": doc_id, "desc": desc, "name": name})
+    return 'general'
 
 
 if __name__ == '__main__':
@@ -52,24 +53,36 @@ if __name__ == '__main__':
             ner_results.append(json.loads(line.strip()))
 
     # 2. 提取所有mention，搜索top-10近邻的数据
-    retriever_instance = Retriever({"client": chromadb_client})
-    linker_instance = Linker()
+    retriever_instance = Retriever(client=chromadb_client)
+    linker_instance = Linker(pipeline=pipeline)
     instruction_pr = read_prompt(prompts_path)
     mentions = []
     for r in ner_results:
         mention = r['mention']
         lctx = r['left_context']
         rctx = r['right_context']
-        label = mention, definition = lctx + " " + mention + " " + rctx
+        print('mention : ', mention)
+
+        # 构造(m, d)
+        print("******** describe prompt ***********")
+        mention_desc_pr = linker_instance.describe_prompt(mention, lctx, rctx)
+        print("          ********** generate desc ***********")
+        definition = linker_instance.mention_desc_generate(mention_desc_pr)
+        label = mention
+        # definition = lctx + " " + mention + " " + rctx
+        print("******** get candidates ***********")
         cands = retriever_instance.get_candidates({"label": label, "definition": definition}, 10, collection)
         # 3.1 执行point-wise el
         linkable_cands = []
         for cand in cands:
-            pr = linker_instance.pointwise_prompt(mention, lctx, rctx, cand, instruction_pr) 
-            res_cand, res = linker_instance.point_wise_el(pr, cand)
+            print('cand : ', cand)
+            entity_name = cand.split(":")[0]
+            entity_desc = cand.split(":")[-1]
+            pr = linker_instance.pointwise_prompt(mention, lctx, rctx, {"entity_name": entity_name, "entity_desc": entity_desc}, instruction_pr) 
+            res_cand, res = linker_instance.point_wise_el(pr, entity_name)
             if res:
                 # link
-                linkable_cands.append(res_cand)
+                linkable_cands.append({"entity_name": entity_name, "entity_desc": entity_desc})
         if len(linkable_cands) > 0:
             # 3.2 执行list-wise el
             print("list-wise el")

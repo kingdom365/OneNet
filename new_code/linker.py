@@ -4,7 +4,25 @@ from LLM_calls import load_llm, llm_call
 class Linker:
     def __init__(self, pipeline):
         self.pipeline = pipeline
+        self.model_name = 'Qwen'
     
+    # 对于给定的mention，LLM生成(m, d)
+    def describe_prompt(self, mention, lctx, rctx):
+        content = "Given a text and an entity from that text, write a definition for the entity in the following format:\n\n"    
+        content += "<entity>:<definition content> \n\n"
+        text = lctx + " " + mention + " " + rctx
+        content += "Here is the text:\n{}".format(text) 
+        content += "\nHere is the entity:\n{}".format(mention)
+        return content
+
+    def mention_desc_generate(self, prompt_content):
+        msgs = [
+            {"role": "system", "content": ""},
+            {"role": "user", "content": prompt_content}
+        ]
+        response = llm_call(msgs, self.model_name, pipeline=self.pipeline)
+        return response.split(':')[-1]
+
     # 输入(m, ctx)，cand_list(cand, desc)
     # 输出(cand, desc, yes/no)表示是否被链接到
     def pointwise_prompt(self, mention, lctx, rctx, cand, instruction_dict):

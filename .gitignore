@@ -4,3 +4,4 @@ meta-llama/
 result/
 .DS_Store
 new_code/__pycache__
+chroma.db/
