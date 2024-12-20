@@ -68,6 +68,8 @@ if __name__ == '__main__':
         mention_desc_pr = linker_instance.describe_prompt(mention, lctx, rctx)
         print("          ********** generate desc ***********")
         definition = linker_instance.mention_desc_generate(mention_desc_pr)
+        print("          ********** (m, d) ***********")
+        print(mention, ":", definition)
         label = mention
         # definition = lctx + " " + mention + " " + rctx
         print("******** get candidates ***********")
@@ -75,11 +77,12 @@ if __name__ == '__main__':
         # 3.1 执行point-wise el
         linkable_cands = []
         for cand in cands:
-            print('cand : ', cand)
             entity_name = cand.split(":")[0]
             entity_desc = cand.split(":")[-1]
-            pr = linker_instance.pointwise_prompt(mention, lctx, rctx, {"entity_name": entity_name, "entity_desc": entity_desc}, instruction_pr) 
-            res_cand, res = linker_instance.point_wise_el(pr, entity_name)
+            print('cand : ', entity_name)
+            sys_pr, user_pr = linker_instance.pointwise_prompt(mention, lctx, rctx, {"entity_name": entity_name, "entity_desc": entity_desc}, instruction_pr) 
+            res_cand, res = linker_instance.point_wise_el(sys_pr, user_pr, entity_name)
+            print('{}---{}: {}'.format(mention, entity_name, res))
             if res:
                 # link
                 linkable_cands.append({"entity_name": entity_name, "entity_desc": entity_desc})

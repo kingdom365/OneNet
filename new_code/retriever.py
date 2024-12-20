@@ -18,7 +18,7 @@ class Retriever:
         rs = self.client.get_or_create_collection(
             collection
         )
-        print('result set size : ', rs.count())
+        # print('result set size : ', rs.count())
         docs = rs.query(
             query_embeddings=[mention_emb],
             n_results=k
